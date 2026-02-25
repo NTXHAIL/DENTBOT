@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NTX Hail - ASK THE DENT BOT</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --brand-red: #ef4444;
+            --brand-blue: #38bdf8;
+            --brand-white: #ffffff;
+            --bg-navy: #05070a;
+        }
+
+        body { 
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-navy);
+            color: var(--brand-white);
+            margin: 0;
+            padding: 0;
+            overflow-x: hidden;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        
+        .logo-font { font-family: 'Orbitron', sans-serif; }
+
+        /* Navigation Animations */
+        .chat-window {
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+            transform: translateY(30px) scale(0.95);
+            opacity: 0;
+            pointer-events: none;
+            display: none;
+        }
+        
+        .chat-window.active {
+            display: flex;
+            transform: translateY(0) scale(1);
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .glass-panel {
+            background: rgba(10, 15, 25, 0.98);
+            backdrop-filter: blur(25px);
+            border: 1px solid rgba(56, 189, 248, 0.1);
+            box-shadow: 0 0 40px rgba(0, 0, 0, 0.5);
+        }
+
+        .message-bubble {
+            animation: messagePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+        }
+
+        @keyframes messagePop {
+            from { opacity: 0; transform: translateY(15px) scale(0.95); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+
+        .action-btn {
+            transition: all 0.2s ease;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            background: rgba(255, 255, 255, 0.03);
+        }
+        .action-btn:hover {
+            background: rgba(56, 189, 248, 0.15);
+            border-color: var(--brand-blue);
+            color: var(--brand-blue);
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(56, 189, 248, 0.2);
+        }
+
+        .form-input {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+            color: white;
+        }
+        .form-input:focus {
+            border-color: var(--brand-blue);
+            background: rgba(56, 189, 248, 0.05);
+            outline: none;
+        }
+
+        select.form-input {
+            appearance: none;
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1em;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='white'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        }
+
+        .typing-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--brand-blue);
+            border-radius: 50%;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+        .typing-dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes typing {
+            0%, 60%, 100% { transform: translateY(0); }
+            30% { transform: translateY(-6px); }
+        }
+
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(56, 189, 248, 0.2); border-radius: 10px; }
+
+        #adminDashboard {
+            position: fixed;
+            inset: 0;
+            background: var(--bg-navy);
+            z-index: 100;
+            padding: 2rem;
+            display: none;
+            overflow-y: auto;
+        }
+
+        .bot-avatar {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: #111;
+            border: 2px solid var(--brand-blue);
+            overflow: hidden;
+            flex-shrink: 0;
+            box-shadow: 0 0 10px rgba(56, 189, 248, 0.3);
+        }
+
+        .patriotic-headline {
+            text-transform: uppercase;
+            font-style: italic;
+            letter-spacing: -1px;
+            font-weight: 900;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .btn-submit {
+            background: linear-gradient(135deg, var(--brand-blue) 0%, #2563eb 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(37, 99, 235, 0.3);
+        }
+
+        .btn-submit:hover {
+            filter: brightness(1.1);
+            transform: scale(1.02);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Landing Page (Perfectly Centered) -->
+    <div id="landingPage" class="text-center px-4 max-w-4xl z-10 flex flex-col items-center justify-center">
+        <h2 class="text-5xl md:text-8xl patriotic-headline mb-16 drop-shadow-lg text-center">
+            <span class="text-white block mb-2">ASK THE</span>
+            <span class="flex gap-4 justify-center">
+                <span class="text-blue-400">DENT</span>
+                <span class="text-red-500">BOT</span>
+            </span>
+        </h2>
+        
+        <div class="flex flex-col items-center gap-6">
+            <button id="mainTrigger" class="px-20 py-6 bg-white text-black rounded-full font-black text-2xl tracking-tighter hover:bg-blue-500 hover:text-white transition-all transform hover:scale-105 active:scale-95 shadow-[0_0_35px_rgba(255,255,255,0.2)] uppercase">
+                Begin Consultation
+            </button>
+            <button id="viewLeadsBtn" class="text-xs text-slate-500 hover:text-red-400 font-bold tracking-[0.3em] uppercase mt-6 transition-colors">
+                Internal Lead Dashboard
+            </button>
+        </div>
+    </div>
+
+    <!-- Leads Dashboard Overlay -->
+    <div id="adminDashboard" class="hidden">
+        <div class="max-w-4xl mx-auto p-8">
+            <div class="flex justify-between items-center mb-8 border-b border-white/10 pb-6">
+                <h2 class="logo-font text-3xl font-black text-white italic">
+                    <span class="text-blue-400">LEAD</span> <span class="text-red-500">LOG</span>
+                </h2>
+                <div class="flex gap-4">
+                    <button id="generateSummaryBtn" class="bg-blue-600/20 text-blue-400 border border-blue-600/30 px-5 py-2 rounded-xl font-bold text-sm flex items-center gap-2 hover:bg-blue-600/30 transition-all">
+                        ✨ Business Insight
+                    </button>
+                    <button onclick="document.getElementById('adminDashboard').style.display='none'" class="bg-zinc-800 text-white px-6 py-2 rounded-xl font-bold text-sm hover:bg-red-600 transition-colors">Close</button>
+                </div>
+            </div>
+            
+            <div id="summaryDisplay" class="hidden mb-8 bg-blue-900/10 border border-blue-500/20 p-6 rounded-2xl text-sm leading-relaxed text-blue-100 italic"></div>
+
+            <div id="leadsList" class="grid gap-4"></div>
+        </div>
+    </div>
+
+    <!-- Chat Interface -->
+    <div id="chatWin" class="chat-window fixed bottom-24 right-6 w-[calc(100vw-3rem)] sm:w-[460px] h-[800px] max-h-[92vh] glass-panel rounded-[2.5rem] shadow-2xl flex flex-col overflow-hidden z-50">
+        
+        <div class="p-6 flex items-center justify-between border-b border-white/5 bg-zinc-900/80">
+            <div class="flex items-center gap-4">
+                <div class="bot-avatar border-2 border-blue-500 shadow-[0_0_15px_rgba(56,189,248,0.4)]">
+                    <img src="robot_mascot.jpg" alt="Dent Bot" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/40x40?text=🤖'">
+                </div>
+                <div class="w-px h-8 bg-white/10"></div>
+                <div>
+                    <h3 class="text-[12px] font-black tracking-widest text-blue-400 uppercase">DENT BOT 🤖</h3>
+                    <span class="text-[9px] font-bold text-slate-400 uppercase tracking-tighter">Automotive AI Expert</span>
+                </div>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="voiceToggle" title="AI Voice" class="text-slate-500 hover:text-blue-400 transition-colors p-2 bg-white/5 rounded-full border border-white/10">
+                    <svg id="voiceOnIcon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 hidden" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM14.657 2.929a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 7.071 1 1 0 01-1.414-1.414A7.971 7.971 0 0017 10c0-2.21-.894-4.208-2.343-5.657a1 1 0 010-1.414zm-2.829 2.828a1 1 0 011.415 0A5.983 5.983 0 0115 10a5.983 5.983 0 01-1.757 4.243 1 1 0 01-1.415-1.415A3.984 3.984 0 0013 10a3.984 3.984 0 00-1.172-2.828a1 1 0 010-1.415z" clip-rule="evenodd" /></svg>
+                    <svg id="voiceOffIcon" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.707.707L4.586 13H2a1 1 0 01-1-1V8a1 1 0 011-1h2.586l3.707-3.707a1 1 0 011.09-.217zM12.293 7.293a1 1 0 011.414 0L15 8.586l1.293-1.293a1 1 0 111.414 1.414L16.414 10l1.293 1.293a1 1 0 01-1.414 1.414L15 11.414l-1.293 1.293a1 1 0 01-1.414-1.414L13.586 10l-1.293-1.293a1 1 0 010-1.414z" clip-rule="evenodd" /></svg>
+                </button>
+                <button id="resetBot" title="Start Over" class="text-slate-500 hover:text-red-500 p-1 transition-colors">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                </button>
+                <button id="minimize" class="text-slate-500 hover:text-white p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" /></svg>
+                </button>
+            </div>
+        </div>
+
+        <div id="history" class="flex-1 overflow-y-auto p-6 space-y-6 bg-black/10"></div>
+
+        <div id="typing" class="hidden px-6 py-2">
+            <div class="flex gap-1.5 p-4 bg-zinc-800/40 w-16 rounded-2xl rounded-tl-none border border-white/5">
+                <div class="typing-dot"></div><div class="typing-dot"></div><div class="typing-dot"></div>
+            </div>
+        </div>
+
+        <!-- Intake Form Overlay -->
+        <div id="leadFormOverlay" class="hidden absolute inset-0 bg-black/95 z-50 flex flex-col p-8 message-bubble overflow-y-auto">
+            <div class="flex justify-between items-center mb-10">
+                <h3 class="logo-font text-blue-400 font-bold uppercase tracking-widest text-xl">Vehicle Intake</h3>
+                <button onclick="window.toggleLeadForm()" class="text-slate-500 hover:text-red-500"><svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" /></svg></button>
+            </div>
+
+            <div id="formContainer">
+                <form id="leadCapture" class="space-y-4">
+                    <div id="vehicleSection" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1.5 ml-1">Year</label>
+                                <select id="yearSelect" required class="form-input w-full p-4 rounded-2xl text-sm">
+                                    <option value="">Year</option>
+                                    <option value="2026">2026</option><option value="2025">2025</option>
+                                    <option value="2024">2024</option><option value="2023">2023</option>
+                                    <option value="2022">2022</option><option value="2021">2021</option>
+                                    <option value="2020">2020</option><option value="2019">2019</option>
+                                    <option value="2018">2018</option><option value="2017">2017</option>
+                                    <option value="2016">2016</option><option value="2015">2015</option>
+                                    <option value="Older than 2015">Older than 2015</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1.5 ml-1">Make</label>
+                                <select id="makeSelect" required class="form-input w-full p-4 rounded-2xl text-sm"><option value="">Make</option></select>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="text-[10px] font-bold text-slate-500 uppercase block mb-1.5 ml-1">Model</label>
+                            <select id="modelSelect" required class="form-input w-full p-4 rounded-2xl text-sm" disabled><option value="">Model</option></select>
+                        </div>
+                    </div>
+
+                    <div class="space-y-4 pt-2 border-t border-white/5">
+                        <input type="text" id="leadName" required class="form-input w-full p-4 rounded-2xl text-sm" placeholder="Full Name">
+                        <input type="text" id="leadZip" required class="form-input w-full p-4 rounded-2xl text-sm" placeholder="Zip Code">
+                        <input type="tel" id="leadPhone" required class="form-input w-full p-4 rounded-2xl text-sm" placeholder="Phone Number">
+                        <input type="email" id="leadEmail" required class="form-input w-full p-4 rounded-2xl text-sm" placeholder="Email Address">
+                    </div>
+
+                    <div id="insuranceField" class="hidden">
+                        <input type="text" id="leadInsurance" class="form-input w-full p-4 rounded-2xl text-sm" placeholder="Insurance Provider (Optional)">
+                    </div>
+
+                    <button type="submit" id="submitLeadBtn" class="w-full btn-submit font-black py-5 rounded-2xl uppercase transition-all text-sm tracking-widest mt-4 shadow-xl">
+                        Save and Complete
+                    </button>
+                </form>
+            </div>
+
+            <!-- Success State -->
+            <div id="successView" class="hidden flex-1 flex flex-col items-center justify-center text-center space-y-10 py-10">
+                <div class="w-24 h-24 bg-blue-500 text-white rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(56,189,248,0.5)] border-4 border-white/20 animate-pulse">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="4" d="M5 13l4 4L19 7" /></svg>
+                </div>
+                <div class="space-y-4">
+                    <h4 class="logo-font text-3xl text-white font-black italic uppercase">Information Received</h4>
+                    <p id="successTxt" class="text-sm text-blue-100 leading-relaxed px-6 opacity-90 font-medium">We've received your contact information. A team member will be in touch within the hour.</p>
+                </div>
+                <div class="w-full space-y-4">
+                    <!-- Scheduling Link -->
+                    <a href="https://calendar.app.google/FTFAoCg3qbGbfLGs5" target="_blank" rel="noopener" class="block w-full bg-white text-black font-black py-6 rounded-2xl uppercase hover:bg-blue-400 hover:text-white transition-all shadow-xl text-center text-sm tracking-widest">
+                        Schedule Appointment
+                    </a>
+                    <!-- Phone Link -->
+                    <a href="tel:2143085779" class="block w-full bg-red-600 text-white font-black py-6 rounded-2xl uppercase hover:bg-red-500 transition-all shadow-xl text-center text-sm tracking-widest">
+                        Call Support: 214-308-5779
+                    </a>
+                    <button onclick="window.startBot();" class="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-bold hover:text-white transition-colors underline pt-4">New Consultation</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 bg-black/60 border-t border-white/5">
+            <form id="chatForm" class="flex items-center gap-3">
+                <div class="relative flex-1">
+                    <input type="text" id="userInput" placeholder="Ask about your damage..." class="w-full bg-zinc-900 border border-white/10 rounded-2xl pl-6 pr-14 py-4 text-sm focus:ring-1 focus:ring-blue-500 transition-all outline-none text-white shadow-inner" autocomplete="off">
+                    <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 bg-blue-600 text-white p-2.5 rounded-xl hover:bg-blue-500 active:scale-90 transition-all">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path d="M10.894 2.553a1 1 0 00-1.788 0l-7 14a1 1 0 001.169 1.409l5-1.429A1 1 0 009 15.571V11a1 1 0 112 0v4.571a1 1 0 00.725.962l5 1.428a1 1 0 001.17-1.408l-7-14z" /></svg>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Initialize Firebase - Standard Rules 1/3 compliance
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        let user = null;
+        let isVoiceEnabled = false;
+
+        const initAuth = async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (err) { console.error("Firebase Auth failed:", err); }
+        };
+        initAuth();
+        onAuthStateChanged(auth, (u) => { user = u; });
+
+        const vehicleData = {
+            "Acura": ["Integra", "MDX", "RDX", "TLX"], "Audi": ["A3", "A4", "A6", "Q5", "Q7", "Q8"],
+            "BMW": ["3 Series", "5 Series", "X3", "X5", "X7", "M3"], "Chevrolet": ["Silverado", "Tahoe", "Suburban", "Corvette"],
+            "Ford": ["F-150", "Mustang", "Explorer", "Bronco"], "GMC": ["Sierra", "Yukon", "Acadia"],
+            "Honda": ["Civic", "Accord", "CR-V", "Pilot"], "Jeep": ["Wrangler", "Grand Cherokee", "Gladiator"],
+            "Lexus": ["RX", "ES", "IS", "GX"], "Mercedes-Benz": ["C-Class", "E-Class", "S-Class", "GLE"],
+            "RAM": ["1500", "2500", "3500"], "Tesla": ["Model 3", "Model Y", "Model S", "Model X"],
+            "Toyota": ["Camry", "Tacoma", "Tundra", "RAV4", "4Runner"], "Volkswagen": ["Jetta", "Tiguan", "Atlas"], "Other / Not Listed": ["Manual Entry"]
+        };
+
+        const apiKey = ""; // USER: INSERT GEMINI API KEY HERE
+        const textModel = "gemini-2.5-flash-preview-09-2025";
+        const ttsModel = "gemini-2.5-flash-preview-tts";
+        const systemPrompt = "You are DENT BOT 🤖 for NTX Hail. North Texas specialist in PDR. Be professional, direct, and concise.";
+
+        const history = document.getElementById('history');
+        const makeSelect = document.getElementById('makeSelect');
+        const modelSelect = document.getElementById('modelSelect');
+        const leadFormOverlay = document.getElementById('leadFormOverlay');
+        const leadCapture = document.getElementById('leadCapture');
+
+        let isNewerVehicle = false;
+        let selectedService = '';
+        let navStack = [];
+        let leadDataForSummary = [];
+
+        document.getElementById('voiceToggle').onclick = () => {
+            isVoiceEnabled = !isVoiceEnabled;
+            document.getElementById('voiceOnIcon').classList.toggle('hidden', !isVoiceEnabled);
+            document.getElementById('voiceOffIcon').classList.toggle('hidden', isVoiceEnabled);
+        };
+
+        // Exponential Backoff implementation for LLM robustness
+        async function callGemini(prompt, isSummary = false) {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${textModel}:generateContent?key=${apiKey}`;
+            const body = { contents: [{ parts: [{ text: prompt }] }], systemInstruction: { parts: [{ text: systemPrompt + (isSummary ? " Act as a business analyst." : "") }] } };
+            
+            for (let i = 0; i < 5; i++) {
+                try {
+                    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                    if (!res.ok) throw new Error("API Limit");
+                    const data = await res.json();
+                    return data.candidates?.[0]?.content?.parts?.[0]?.text;
+                } catch (e) {
+                    if (i === 4) return "Network error. Please call 214-308-5779.";
+                    await new Promise(r => setTimeout(r, Math.pow(2, i) * 1000));
+                }
+            }
+        }
+
+        // Standard PCM-to-WAV conversion with Uint8Array
+        function pcmToWav(pcmBuffer, sampleRate) {
+            const pcm = new Uint8Array(pcmBuffer);
+            const wav = new Uint8Array(44 + pcm.length);
+            const view = new DataView(wav.buffer);
+            const setS = (o, s) => { for(let i=0;i<s.length;i++) view.setUint8(o+i, s.charCodeAt(i)); };
+
+            setS(0, 'RIFF');
+            view.setUint32(4, 36 + pcm.length, true);
+            setS(8, 'WAVE');
+            setS(12, 'fmt ');
+            view.setUint32(16, 16, true);
+            view.setUint16(20, 1, true); // PCM
+            view.setUint16(22, 1, true); // Mono
+            view.setUint32(24, sampleRate, true);
+            view.setUint32(28, sampleRate * 2, true);
+            view.setUint16(32, 2, true);
+            view.setUint16(34, 16, true);
+            setS(36, 'data');
+            view.setUint32(40, pcm.length, true);
+            wav.set(pcm, 44);
+            return new Blob([wav], { type: 'audio/wav' });
+        }
+
+        async function speakText(text) {
+            if (!isVoiceEnabled) return;
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${ttsModel}:generateContent?key=${apiKey}`;
+            const body = { contents: [{ parts: [{ text: `Say cheerfully: ${text}` }] }], generationConfig: { responseModalities: ["AUDIO"], speechConfig: { voiceConfig: { prebuiltVoiceConfig: { voiceName: "Puck" } } } } };
+            try {
+                const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                const result = await res.json();
+                const part = result.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+                if (part) {
+                    const binary = atob(part.inlineData.data);
+                    const bytes = new Uint8Array(binary.length);
+                    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+                    const wavBlob = pcmToWav(bytes.buffer, 24000);
+                    const audio = new Audio(URL.createObjectURL(wavBlob));
+                    audio.play();
+                }
+            } catch (e) { console.error("TTS failed"); }
+        }
+
+        window.startBot = () => {
+            if (!history) return;
+            history.innerHTML = ''; 
+            document.getElementById('successView').classList.add('hidden');
+            document.getElementById('formContainer').classList.remove('hidden');
+            if (leadFormOverlay && !leadFormOverlay.classList.contains('hidden')) leadFormOverlay.classList.add('hidden');
+            appendMsg("<div class='text-center'><span class='text-blue-400 font-black uppercase tracking-widest text-xl block mb-2'>Consultation Started 🤖</span>How can we help today?</div>", 'bot', [
+                { label: 'Hail estimate', step: 'timing' }, { label: 'Hail repair', step: 'timing' },
+                { label: 'Minor Dent repair', step: 'ding' }
+            ]);
+        };
+
+        window.toggleLeadForm = (isNewer) => {
+            leadFormOverlay.classList.toggle('hidden');
+            const ins = document.getElementById('insuranceField');
+            if (ins) ins.classList.toggle('hidden', !selectedService.toLowerCase().includes('hail'));
+            isNewerVehicle = !!isNewer;
+        };
+
+        async function handleChoice(label, step) {
+            appendMsg(label, 'user');
+            const typing = document.getElementById('typing');
+            typing.classList.remove('hidden');
+            setTimeout(() => {
+                typing.classList.add('hidden');
+                if (step === 'timing') {
+                    selectedService = label;
+                    appendMsg("When did the vehicle sustain damage?", 'bot', [{ label: 'Recently', step: 'newer' }, { label: 'Months ago', step: 'newer' }]);
+                } else if (step === 'newer') {
+                    appendMsg("Is the vehicle newer than 2019?", 'bot', [{ label: 'Yes', step: 'check_photos_yes' }, { label: 'No', step: 'check_photos_no' }]);
+                } else if (step === 'ding') {
+                    selectedService = label;
+                    appendMsg("Is the paint currently perfect?", 'bot', [{ label: 'Perfect', step: 'check_photos_yes' }, { label: 'Cracked', step: 'check_photos_no' }]);
+                } else if (step.includes('check_photos')) {
+                    isNewerVehicle = (step === 'check_photos_yes');
+                    if (isNewerVehicle) {
+                        appendMsg("Perfect. Opening your intake form...", 'bot');
+                        setTimeout(() => window.toggleLeadForm(true), 400);
+                    } else {
+                        appendMsg("We can definitely assist. Please provide your info so a specialist can follow up within the hour.", 'bot');
+                        setTimeout(() => window.toggleLeadForm(false), 2000);
+                    }
+                }
+            }, 600);
+        }
+
+        function appendMsg(text, role, options = null) {
+            if (!history) return;
+            const wrap = document.createElement('div');
+            wrap.className = `flex ${role === 'user' ? 'justify-end' : 'justify-start'} message-bubble mb-4 items-start gap-3`;
+            if (role === 'bot') {
+                const avatar = document.createElement('div');
+                avatar.className = "bot-avatar mt-1";
+                avatar.innerHTML = `<img src="robot_mascot.jpg" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/40x40?text=🤖'">`;
+                wrap.appendChild(avatar);
+                if (isVoiceEnabled) speakText(text.replace(/<[^>]*>?/gm, ''));
+            }
+            const content = document.createElement('div');
+            content.className = "max-w-[85%] space-y-3";
+            const bubble = document.createElement('div');
+            bubble.className = `px-5 py-3 rounded-2xl text-sm leading-relaxed shadow-lg ${role === 'user' ? 'bg-white text-zinc-900 font-bold rounded-tr-none' : 'bg-blue-600 text-white rounded-tl-none'}`;
+            bubble.innerHTML = text;
+            content.appendChild(bubble);
+            if (options) {
+                const grid = document.createElement('div'); grid.className = "grid gap-2 mt-2";
+                options.forEach(opt => {
+                    const btn = document.createElement('button');
+                    btn.className = "action-btn text-left bg-zinc-900/50 p-4 rounded-xl text-xs font-semibold text-slate-300 flex items-center justify-between";
+                    btn.innerHTML = `<span>${opt.label}</span><svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" /></svg>`;
+                    btn.onclick = () => handleChoice(opt.label, opt.step);
+                    grid.appendChild(btn);
+                });
+                content.appendChild(grid);
+            }
+            wrap.appendChild(content); 
+            history.appendChild(wrap); 
+            history.scrollTop = history.scrollHeight;
+        }
+
+        // Admin Dash Logic
+        document.getElementById('viewLeadsBtn').onclick = () => {
+            const dash = document.getElementById('adminDashboard');
+            if (!user) {
+                const btn = document.getElementById('viewLeadsBtn');
+                btn.textContent = "Connecting...";
+                setTimeout(() => { if (user) { dash.style.display = 'block'; loadLeads(); } }, 1500);
+                return;
+            }
+            dash.style.display = 'block';
+            loadLeads();
+        };
+
+        function loadLeads() {
+            onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', 'leads'), s => {
+                const l = document.getElementById('leadsList');
+                l.innerHTML = ''; leadDataForSummary = [];
+                s.forEach(d => {
+                    const data = d.data(); leadDataForSummary.push(data);
+                    const card = document.createElement('div');
+                    card.className = "bg-zinc-900 p-6 rounded-2xl border border-white/5 shadow-xl";
+                    card.innerHTML = `<div class="flex justify-between text-[10px] text-blue-400 font-bold uppercase mb-2"><span>${data.service}</span><span>${new Date(data.timestamp).toLocaleTimeString()}</span></div>
+                    <div class="text-white font-bold text-lg">${data.name}</div><div class="text-slate-400 text-sm">${data.phone}</div><div class="text-red-500 text-xs font-bold mt-2 uppercase tracking-widest">${data.vehicle}</div>`;
+                    l.appendChild(card);
+                });
+            }, (err) => console.error("Firestore error"));
+        }
+
+        if (makeSelect) {
+            Object.keys(vehicleData).sort().forEach(m => {
+                const opt = document.createElement('option'); opt.value = m; opt.textContent = m; makeSelect.appendChild(opt);
+            });
+            makeSelect.onchange = (e) => {
+                modelSelect.innerHTML = '<option value="">Model</option>';
+                if (e.target.value) {
+                    modelSelect.disabled = false;
+                    vehicleData[e.target.value].forEach(m => {
+                        const opt = document.createElement('option'); opt.value = m; opt.textContent = m; modelSelect.appendChild(opt);
+                    });
+                } else modelSelect.disabled = true;
+            };
+        }
+
+        leadCapture.onsubmit = async (e) => {
+            e.preventDefault();
+            if (!user) return;
+            const btn = document.getElementById('submitLeadBtn');
+            btn.disabled = true; btn.textContent = "SAVING...";
+            const lead = {
+                service: selectedService, name: document.getElementById('leadName').value,
+                phone: document.getElementById('leadPhone').value, email: document.getElementById('leadEmail').value,
+                zip: document.getElementById('leadZip').value, insurance: document.getElementById('leadInsurance').value || 'N/A',
+                isNewer: isNewerVehicle, timestamp: new Date().toISOString(),
+                vehicle: `${document.getElementById('yearSelect').value} ${document.getElementById('makeSelect').value} ${document.getElementById('modelSelect').value}`
+            };
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'leads'), lead);
+                document.getElementById('formContainer').classList.add('hidden');
+                document.getElementById('successView').classList.remove('hidden');
+            } catch (err) { console.error(err); }
+            finally { btn.disabled = false; btn.textContent = "Save and Complete"; }
+        };
+
+        document.getElementById('resetBot').onclick = window.startBot;
+        document.getElementById('mainTrigger').onclick = () => { 
+            document.getElementById('chatWin').classList.add('active'); 
+            if(history.children.length === 0) window.startBot(); 
+        };
+        document.getElementById('minimize').onclick = () => document.getElementById('chatWin').classList.remove('active');
+
+        document.getElementById('chatForm').onsubmit = async (e) => {
+            e.preventDefault();
+            const uiInput = document.getElementById('userInput');
+            const val = uiInput.value.trim();
+            if (!val) return;
+            uiInput.value = ''; appendMsg(val, 'user');
+            const res = await callGemini(val);
+            appendMsg(res, 'bot');
+        };
+    </script>
+</body>
+</html>
